@@ -1,0 +1,3 @@
+defaultTabs:
+  - title: Dev Server
+    command: npm run dev
