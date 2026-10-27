@@ -217,11 +217,16 @@ class ChimeAudioEngine {
   ): Promise<void> {
     if (typeof window === "undefined") return;
 
-    // Use "playback" audio session so iOS permits continuous background execution
+    // CRITICAL iOS WebKit trick:
+    // "transient" maps in WebKit (AudioSessionIOS.mm) to AVAudioSessionCategoryPlayback
+    // WITH AVAudioSessionCategoryOptionDuckOthers / MixWithOthers!
+    // Unlike "playback" (which pauses Spotify/YouTube) and "ambient" (which stops in background),
+    // "transient" WITHOUT mediaSession metadata keeps the <audio> stream alive in background
+    // while allowing Spotify & YouTube to continue playing simultaneously!
     try {
       const nav = navigator as NavigatorWithAudioSession;
       if (nav.audioSession) {
-        nav.audioSession.type = "playback";
+        nav.audioSession.type = "transient";
       }
     } catch {
       // Ignore
@@ -254,21 +259,6 @@ class ChimeAudioEngine {
     this.bgAudioElement.src = blobUrl;
     this.bgAudioElement.volume = 1.0;
     await this.bgAudioElement.play();
-
-    // Register MediaSession so iOS Lockscreen keeps the audio pipeline alive indefinitely
-    if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
-      try {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: "Minute Chime Aktiv (:00)",
-          artist:
-            CHIME_PROFILES.find((p) => p.id === profile)?.label ||
-            "Signalton jede Minute",
-          album: "Minute Chime iOS",
-        });
-      } catch {
-        // Ignore
-      }
-    }
   }
 
   public preScheduleUpcomingMinutes(
