@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Bell,
   BellOff,
@@ -8,8 +8,12 @@ import {
   Play,
   ShieldCheck,
   Smartphone,
-  PictureInPicture2,
-  BellRing,
+  Sparkles,
+  Copy,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
 } from "lucide-react";
 import { CHIME_PROFILES, ChimeProfile } from "@/lib/audio-engine";
 import { PushStatus } from "@/hooks/useWebPush";
@@ -39,15 +43,28 @@ export function ChimeControls({
   onChangeVolume,
   onTestSound,
   isWakeLockActive,
-  isPipActive,
-  onTogglePip,
-  pushStatus,
-  pushError,
-  onTogglePush,
 }: ChimeControlsProps) {
+  const [showShortcutGuide, setShowShortcutGuide] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+
+  const soundUrl = `https://minute-chime.vercel.app/api/sound?profile=${profile}`;
+  const runShortcutHref = `shortcuts://run-shortcut?name=${encodeURIComponent(
+    "Minute Chime"
+  )}&input=text&text=${encodeURIComponent(soundUrl)}`;
+
+  const handleCopyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(soundUrl);
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 2000);
+    } catch {
+      // Fallback
+    }
+  };
+
   return (
     <div className="w-full max-w-sm space-y-3.5">
-      {/* Primary Activation Toggle Button */}
+      {/* Primary Activation Toggle Button (In-App Ambient Mode) */}
       <button
         type="button"
         onClick={onToggleActive}
@@ -60,107 +77,107 @@ export function ChimeControls({
         {isActive ? (
           <>
             <Bell className="h-5 w-5 fill-current animate-pulse" />
-            <span>Minutenton Aktiv (Jede :00)</span>
+            <span>In-App Ton Aktiv (Jede :00)</span>
           </>
         ) : (
           <>
             <BellOff className="h-5 w-5 text-zinc-400" />
-            <span>Signalton aktivieren</span>
+            <span>In-App Signalton aktivieren</span>
           </>
         )}
       </button>
 
-      {/* iOS Background Web Push Button (Works when app is closed + Spotify playing) */}
-      <button
-        type="button"
-        onClick={onTogglePush}
-        className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-xs font-medium transition-all active:scale-[0.98] ${
-          pushStatus === "active"
-            ? "bg-emerald-950/80 text-emerald-200 ring-1 ring-emerald-500/50"
-            : "bg-zinc-900/80 text-zinc-300 ring-1 ring-zinc-800 hover:bg-zinc-900"
-        }`}
-      >
-        <div className="flex items-center gap-2.5">
-          <div
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${
-              pushStatus === "active"
-                ? "bg-emerald-500/20 text-emerald-300"
-                : "bg-zinc-800 text-zinc-400"
-            }`}
-          >
-            <BellRing className="h-4 w-4" />
+      {/* iOS Native Shortcut Card (Background + Spotify + YouTube + Dynamic Island) */}
+      <div className="rounded-2xl bg-zinc-900/90 p-3.5 ring-1 ring-emerald-500/30 space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-300">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-zinc-100">
+                iOS Hintergrund + Spotify & YouTube
+              </p>
+              <p className="text-[11px] text-zinc-400">
+                Startet via Apple Kurzbefehl inkl. Dynamic Island
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="font-semibold text-zinc-100">
-              {pushStatus === "active"
-                ? "iOS Hintergrund-Push Aktiv (Jede :00)"
-                : pushStatus === "subscribing"
-                  ? "Verbinde iOS Push-Dienst..."
-                  : "iOS Hintergrund-Push aktivieren"}
-            </p>
-            <p className="text-[11px] text-zinc-400">
-              Ton + Banner zu jeder vollen Minute – auch bei geschlossener App & Spotify
-            </p>
-          </div>
-        </div>
-        <span
-          className={`ml-2 shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-semibold ${
-            pushStatus === "active"
-              ? "bg-emerald-500/20 text-emerald-300"
-              : "bg-zinc-800 text-zinc-300"
-          }`}
-        >
-          {pushStatus === "active" ? "Aktiv" : "Start"}
-        </span>
-      </button>
 
-      {pushError && (
-        <p className="rounded-xl bg-amber-950/50 px-3 py-2 text-[11px] text-amber-200 ring-1 ring-amber-500/30">
-          {pushError}
-        </p>
-      )}
-
-      {/* Floating Live-Activity (Picture-in-Picture) Button */}
-      <button
-        type="button"
-        onClick={onTogglePip}
-        className={`flex w-full items-center justify-between rounded-2xl px-4 py-2.5 text-left text-xs font-medium transition-all active:scale-[0.98] ${
-          isPipActive
-            ? "bg-emerald-950/80 text-emerald-200 ring-1 ring-emerald-500/50"
-            : "bg-zinc-900/60 text-zinc-300 ring-1 ring-zinc-800/80 hover:bg-zinc-900"
-        }`}
-      >
-        <div className="flex items-center gap-2.5">
-          <div
-            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl ${
-              isPipActive
-                ? "bg-emerald-500/20 text-emerald-300"
-                : "bg-zinc-800 text-zinc-400"
-            }`}
+          <a
+            href={runShortcutHref}
+            className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-zinc-950 shadow-sm transition hover:bg-emerald-400 active:scale-95"
           >
-            <PictureInPicture2 className="h-3.5 w-3.5" />
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-100">
-              {isPipActive
-                ? "Schwebendes Countdown-Widget aktiv"
-                : "Schwebendes Countdown-Widget (PiP)"}
-            </p>
-            <p className="text-[11px] text-zinc-400">
-              Zeigt die Sekunden bis zur nächsten Minute über allen Apps
-            </p>
-          </div>
+            <span>Starten</span>
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
         </div>
-        <span
-          className={`ml-2 shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold ${
-            isPipActive
-              ? "bg-emerald-500/20 text-emerald-300"
-              : "bg-zinc-800 text-zinc-300"
-          }`}
+
+        <button
+          type="button"
+          onClick={() => setShowShortcutGuide((v) => !v)}
+          className="flex w-full items-center justify-between border-t border-zinc-800/80 pt-2 text-[11px] font-medium text-emerald-400 hover:text-emerald-300"
         >
-          {isPipActive ? "An" : "Öffnen"}
-        </span>
-      </button>
+          <span>Einmalige Einrichtung (4 Blöcke in 30 Sek.)</span>
+          {showShortcutGuide ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
+        </button>
+
+        {showShortcutGuide && (
+          <div className="space-y-2.5 rounded-xl bg-zinc-950 p-3 text-xs text-zinc-300 ring-1 ring-zinc-800">
+            <div className="space-y-1">
+              <p className="font-semibold text-zinc-100">
+                1. Sound-URL für deinen aktuellen Ton kopieren:
+              </p>
+              <div className="flex items-center gap-1.5">
+                <code className="flex-1 truncate rounded-lg bg-zinc-900 px-2 py-1.5 font-mono text-[10px] text-emerald-300 ring-1 ring-zinc-800">
+                  {soundUrl}
+                </code>
+                <button
+                  type="button"
+                  onClick={handleCopyUrl}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-zinc-800 px-2.5 py-1.5 text-[11px] font-medium text-zinc-100 hover:bg-zinc-700 active:scale-95"
+                >
+                  {copiedUrl ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-emerald-400" />
+                      <span>Kopiert</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" />
+                      <span>Kopieren</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1 text-[11px] leading-relaxed text-zinc-400">
+              <p className="font-semibold text-zinc-200">
+                2. In der iPhone „Kurzbefehle“-App (+) neu anlegen:
+              </p>
+              <ol className="list-decimal pl-4 space-y-1 text-zinc-300">
+                <li>
+                  Name des Kurzbefehls: <strong className="text-emerald-300">Minute Chime</strong>
+                </li>
+                <li>
+                  Aktion <strong>„Inhalte von URL abrufen“</strong> hinzufügen &amp; die kopierte Sound-URL einfügen.
+                </li>
+                <li>
+                  Aktion <strong>„Wiederholen“</strong> hinzufügen (z. B. <strong>60 Mal</strong>).
+                </li>
+                <li>
+                  In die Schleife ziehen: <strong>„Warten“ (60 Sekunden)</strong> und darunter <strong>„Ton abspielen“</strong> (wählt automatisch die abgerufene Sound-Datei).
+                </li>
+              </ol>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Status Badges (Ambient Music Mix & Wake Lock) */}
       <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
@@ -172,7 +189,7 @@ export function ChimeControls({
           }`}
         >
           <ShieldCheck className="h-3.5 w-3.5" />
-          {isActive ? "Musik-Mix (Ambient) aktiv" : "Musik-Mix bereit"}
+          Spotify-Mix (Ambient) aktiv
         </span>
 
         <span
@@ -191,7 +208,7 @@ export function ChimeControls({
       <div className="rounded-2xl bg-zinc-950/90 p-4 ring-1 ring-zinc-800/90 space-y-3.5">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-            Klangprofil (In-App)
+            Klangprofil
           </span>
           <button
             type="button"
